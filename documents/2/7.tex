@@ -1,0 +1,104 @@
+\subsection{2.7自定义迭代器}
+如果觉得本帝内容很难，就不要让自己陷入困境，因为对千本书后面的内容来说，不
+需要明白本节的内容。可以直接跳过它，学习第3音。但是，木章可以提供一个洞察STL
+迭代器结构以及感受模板强大功能的机会。迭代器对千任何自定义的类序列都是一个强大
+的附加工具。它允许我们将算法运用到有自定义类元素的容器上。可能会出现一种情形一
+没有可以满足我们需要的标准STL容器，这时候就需要定义一个自己的容器。我们的容器
+类可能需要迭代器。通过深入理解什么样的类（定义了迭代器）才能被STL所接受，可以让
+我们了解到STL内部发生了些什么。
+\subsubsection{2.7.1STL迭代器的要求}
+STL对定义了迭代器的类类型有一些特定的要求。这是为了保证所有接受这种迭代器
+的算法都可以正常工作。算法不需要知道，也不在乎它所处理的元素来自何种容器，但是
+它们在意传给它们作为参数的达代器的特性。不同的算法要求不同功能的迭代器。我们在
+第1章看到过这儿类迭代器：输入迭代器、输出迭代器、前向迭代器、双向迭代器和随机
+访问迭代器。我们总是可以在需要低级别迭代器的地方使用高级别迭代器。
+
+定义算法的模板面要决定可传入迭代器的类别，用来验证所传入的迭代器的功能是否
+足够。知道迭代器参数的类别能为算法的应用提供潜在的优势，可以充分利用任何最少
+的额外功能让算法更加高效。一般来说，这样做可能的，必须用标准的方式确认迭代器
+的功能不同类别的迭代器意味需要为迭代器类定义不同的成员函数集。我们已经知道，
+迭代器类别具有功能叠加性，这当然也会反映到每种类别的成员函数集上。在探讨这些
+之前，先介绍以下函数模板如何使用迭代器。
+
+\textbf{使用STL迭代器存在的问题}
+
+定义一个参数中有迭代器的函数校板会产生一个问题，我们并不总是知道在函数模板中
+要用到哪些类型的迭代器。思考下面用迭代器作为参数的交换函数；模板类型参数指定
+了迭代器类型：
+\begin{verbatim}
+	template<typenameIter>voidmy_swap(Itera,Iterb)
+	{
+		tem=*a;//error--variabletempundeclared
+		*a=*b;
+		*b=tmp;
+	}
+
+\end{verbatim}
+
+函数模板的实例用来交换迭代器参数所指向的两个对象：a和b。tmp应该是什么类型？
+我们没法知道——但知道迭代器指向对象的类型，但是我们却无计可施，因为直到类
+模板生成实例时，才能确定对象的类型。在不知道对象的类型时，如何定义变量
+？当然，这里可以使用auto。在一些情况下，我们也想知道迭代器类型的值和类型差别。
+
+有些其他的机制可以确定一个迭代器参数所指向值的类型。－种是，坚待要求每个
+使用my\_swap()的迭代器都应该包含一个公共定义的类型别名，因为这样就可以确
+定迭代器所指向对象的类型。既然这样，就可以在迭代器类中使用value\_type的
+别名来指定函数模板my\_swap()中tmp的类型，如下所示：
+
+
+\begin{verbatim}
+	template<typenameIter>voidmy_swap(Itera,Iterb)
+	{
+		typenameIter::value_typetmp=*a;//Better-buthaslimitations...
+		*a=*b;
+		*b=tmp;
+	}
+\end{verbatim}
+
+
+因为value\_type的别名定义在lter类中，所以可以通过用类名限定value\_type的方式引用
+它。这样定义了value\_type别名的迭代器类就能在函数中正常使用。
+然而，算法既使用指针，也使用迭代器；如果Iter是普通类型的指针，例如int*，甚至
+是Box*，而Box是类型——这样可能就无法使用了。因为指针不是类，不能包含定义的别名，
+所以不能写成int*::value\_type或Box*::value\_type。STL用模板优雅地解决了这个问题和其他一些相关问题！
+\subsubsection{2.7.2 走进STL}
+模板类型 iterator\_traits 定义在头文件 iterator 中。这个模板为迭代器的类型特性定义了
+一套标准的类型别名 。 关键是要解决前一节的难题， 而且要让算法既可以用迭代器，
+也可以用 一般的指针。 iterator\_traits模板的定义如下所示：
+
+
+
+\begin{verbatim}
+	template<class Iterator> 
+	struct iterator traits 
+	{
+		typedef typename Iterator::difference_type	 	difference_type
+		typedef typename Iterator::value_type			value_type
+		typedef typename Iterator::pointer				pointer
+		typedef typename Iterator:: reference			reference
+		typedef typename Iterator::iterator_category 	iterator_category 
+	};
+\end{verbatim}
+相信你肯定记得，结构体和类在本质上是相同的，除了结构体的成员默认是public。这个结构体模板中没有成员变址和成员函数。iterator\_traits模板的主体只包含类型别名的定义。
+这些别名以Iterator作为类型参数的模板。它在模板的类型别名——difference\_type、value\_type等，以及用来生成迭代器模板实例的类型，与对应Iterator的类型参数之间定义
+了映射。因此对于一个实体类Boggle,iterator\_traits<Boggle>实例定义difference\_type作为Boggle::difference\_type的别名，定义value\_type作为Boggle::value\_type的别名，等等。
+
+这帮我们有效地解决了不知道模板定义中类型是什么的问题。首先，假设定义了一个迭代器类型MyIterator,它包含具有下列类型别名的定义：
+	\begin{itemize}
+	\item difference\_type——两个Mylterator类型的迭代器之间差别值的类型。
+	\item value\_type—MyIterator类型的迭代器所指向值的类型。
+	\item pointer——Mylterator类型的迭代器所表示的指针类型。
+	\item reference 来自来自于*MyIterator的引用类型。
+	\item iterator\_catego1y——第l章所介绍的迭代器类别的标签类类型：它们是input\_iterator\_tag、output\_iterator\_tag、foIWard\_iterator\_tag、bidirectional\_iterator\_tag、random\_access\_iterator\_tag。
+	\end{itemize}
+一个满足STL要求的迭代器类必须全部定义这些别名。但是对于输出迭代器，除了iterator\_category,所有的别名都可以定义为void。这是因为输出迭代器指向对象的目的地址而不是对象。这套迭代器提供了我们所想知道的关千迭代器的一切。
+
+
+当以迭代器为参数定义函数模板时，可以在模板中使用iterator\_traits模板定义的标准类型别因此类型MyIterator的迭代器代表的指针类型总是可以作为\\std::iterator\_traits<Mylterator>::pointer引用，因为它等同于Mylterator::pointer。当需要指定一个MyIterator迭代器所指向值的类型时，可以写作std::iterator\_traits<Mylterator>::value\_type，这将会被映射为MyIterator::value\_type。我们用my\_swap(）模板中的iterator\_traits模板类型别名来指定tmp的类型，例如：
+
+%\begin{verbatim}
+%	std::forward_list<std::string>my_words{"three","six","eight"};
+%	std::forward_list<std::string>your_words{"seven","four","nine"};
+%	my_words.splice_after(my_words.before_begin(),your_words,
+%	++std::begin(your_words));
+%\end{verbatim}

@@ -1,0 +1,87 @@
+\subsection{2.6 使用forward\_list<T>容器}
+forward\_list容器以单链表的形式存储元素。forward\_list的模板定义在头文件forward\_list
+中。forward\_list和list最主要的区别是：它不能反向遍历元素；只能从头到尾遍
+历。forward\_list的单向链接性也意味着它会有一些其他的特性。首先，无法使用反向迭代
+器。只能从它得到const或non-const前向迭代器，这些迭代器都不能解引用，只能自增。其
+次，没有可以返回最后一个元素引用的成员函数back()；只有成员函数front()。最后，因为
+只能通过自增前而元素的迭代器来到达序列的终点，所以
+pusb\_back()、pop\_back()、emplace\_back()也无法使用。forward\_list的操作比list容器还要
+快，而且占用的内存更少，尽管它在使用上有很多限制，但仅这一点也足以让我们满意
+了。
+
+forward\_list容器的构造函数的使用方式和list容器相同。forward\_list的迭代器都是前
+向迭代器。它没有成员函数size()，因此不能用一个前向迭代器减去另一个前向迭代器，
+但是可以通过使用定义在头文件iterator 中的distance()函数来得到元素的个数。 例如：
+
+\begin{verbatim}
+	std::forward_list<std::string> 
+	my_words {"three", "six", "eight"};
+	auto count = std::distance(std::begin(my_words), std::end(my_words)); // Result is 3
+\end{verbatim}
+
+distance()的第一个参数是一个开始迭代器，第二个参数是一个结束迭代器，它们指定了元
+素范围。当需要将前向迭代器移动多个位置时，advance()就派上了用场。例如：
+
+\begin{verbatim}
+	std: :forward\list<int> data {10, 21, 43, 87, 175, 351};
+	auto iter = std:: begin (data);	
+	size\t n { 3 } ;
+	std: :advance(iter, n);
+	std: :cout << "The "<< n+1 << "th element is "<< *iter << std::endl; // Outputs 87
+\end{verbatim}
+
+这并不神奇。advance()函数会将前向迭代器自增需要的次数。这使我们不必去循环自增迭代器。
+需要记住的是这个函数自增的是作为第一个参数的迭代器，但是并不会返回它——advance()的返回类型为void。
+
+因为forward\_list正向链接元素，所以只能在元素的后面插入或粘接另一个容器的元素，这一点和list 容器的操作不同,list可以在元素前进行操作。因为这个, forward\_list包含成员函数splice\_after(）和insert\_after(),用来代替list容器的splice()和insert():顾名思义,元素会被粘接或插入到list中的一个特定位置。
+当需要在forward\_list的开始处粘接或插入元素时,这些操作仍然会有问题。除了第一个元素,不能将它们粘接或插入到任何其他元素之前。
+这个问题可以通过使用成员函数cbefore\_begin()和before\_begin()来解决。它们分别可以返回指向第一个元素之前位置的const和non-const迭代器。
+所以可以使用它们在开始位置插入或粘接元素。例如：
+
+\begin{verbatim}
+	std: :forward_list<std::string> my_words {"three", "six", "eight"};
+	std:: forward_list<std::string> your_words {"seven", "four", "nine" };
+	my_words. splice_after (my_words.before_begin(), your_words,
+	 												 ++std:: begin(your_words));
+\end{verbatim}
+
+这个操作的效果是将your\_words的最后一个元素粘接到my\_words 的开始位置,因此my\_words 会包含这些字符串对象"nine"、"three"、"six"、"eight"。这时your\_words就只剩下两个字符串元素： "seven"和"four"。
+还有另一个版本的splice\_after(), 它可以将forward\_list<T>的一段元素粘接到另一个容器中:
+
+\begin{verbatim}
+	my_words.splice_after(my_words.before_begin(), your_words,
+				++std::begin (your_words), std::end (your_words));
+\end{verbatim}
+
+最后两个迭代器参数,指定了第三个参数所指定的forward\_list<T>容器的元素范围。
+在这个范围内的元素, 除了第一个, 其他的都被移到第一个参数所指定容器的特定位置。
+因此,如果在容器初始化后执行这条语句, my\_words 会包含"four"、"nine”、"three"、"six"
+、"eight", your\_ words 仅仅包含"seven"。另一个版本的splice\_after(）会将一个forward\_list<T>容器的全部元素粘接到另一个容器中:
+\begin{verbatim}
+	my_words.splice_after(my_words.before_begin(), your_words);
+\end{verbatim}
+
+上面的代码会将your\_words 中的全部元素拼接到第一个元素指定的位置。\\
+forward\_list和list 一样都有成员函数sort()和merge(),它们也都有remove()、remove\_if()
+和unique()， 所有这些函数的用法都和list 相同。我们可以尝试在一个示例中演示
+forward\_list 的操作。容器会包含一些代表矩形盒子的Box 类对象。下面是Box 类的头文件
+中的内容:
+
+\verbatiminput{codes/2/Ex06h}
+
+utility头文件中的命名空间std::relops包含一些比较运算符的模板。如果一个类已经定义了operator<()和 operator==(),那么在福要时,这个模板会生成剩下的比较运算符函数。Box类有三个私有成员,它们定义了Box对象的整体尺寸。带默认伯的构造函数提供了一个无参构造函数,当在容器中保存Box对象时,需要使用它;没有初始化的元素由这种元素默认的构造函数生成。内联的友元函数重载了流的提取和插入运算,这显然包含标准输入输出流。 每次以三个输入值为一组,在读入第一个输入值后, operator>>()函数会通过调用流对象的eof()函数来检查是否读到EOF。当输入Ctrl+Z或从文件输入流中读到文件结束符时,标准输入流会被设置为EOF。当这些发生时会结束输入，然后返回一个流对象,EOF状态会继续保持,因此调用程序可以检测到这个状态。
+
+下面是一个在 forward\_list 容器中保存 Box 对象的示例：
+\verbatiminput{codes/2/Ex06cpp}
+
+函数模板 list\_elements()用来输出由开始和结束迭代器指定的元素，每6个元素一行。
+这里用来输出main()中的forward\_list 的内容。在main()中，首先使用copy(）算法，以 istream\_iterator<Box>对象作为数据源，以front\_inserter作为数据存放地，从cin中读入一些Box对象的尺寸。 istream\_iterator会调用定义在Box.h中的函数 operator>>()读取Box对象。
+
+
+front\_inserter会调用容器的成员函数 push\_front(),这是为forward\_list所做的工作。对boxes容器中的元素进行排序后，我们会通过copy()算法将元素转移到ostream\_iterator<Box>对象中,然后输出它们。这个迭代器会调用定义在Box.h中的函数 operator<<()。 这里有一个限制，我们无法控制每行元素输出的个数。
+剩下的代码是用模板list\_elements(）输出的实例。
+
+另一个forward\_list容器more\_boxes的内容被插入到boxes容器的头部。这是通过以函数before\_begin()返回的迭代器作为插入位置，然后调用insert\_after()来实现。
+
+下一步操作是对boxes中的元素进行排序，然后将more\_boxes的内容合并到boxes中。这两个容器在调用merge()前都必须先排序，因为只有在容器都是升序时，这个操作才能正常运行。因为插入新元素，显然会使boxes中出现 一些重复的元素。调用boxes的函数unique()就可以消除连续重复的元素。最后一个操作是调用boxes()的函数 remove\_if()来删除容器中的一些元素。由作为参数传入的一元断言来决定删除哪些元素。这里使用的是
+一个lambda表达式，如果元素体积小于max\_v, 就返回true。 max\_v是从外部区域以值的方式捕获的，因此外部区域和表达式内部的值可能不同。由输出可以看出，所有的操作都符合预期。
